@@ -1,4 +1,4 @@
-const api_base = "https://chatwithsk.onrender.com";
+const api_base = "https://chat-d8ex.onrender.com";
 
 (function () {
   const launcher = document.getElementById('chat-launcher');
