@@ -151,21 +151,10 @@ def get_messages():
         conn.close()
 
 
-def send_message_notification(user_identifier, message, file_bytes, original_filename):
-    """
-    Sends admin email when a new message is created.
-    Attaches file if present.
-    Supports BCC (audit, logs, founders, etc)
-    """
-
-    import tempfile
-    import os
-    from brevo import send_email
-
+def _send_email_async(user_identifier, message, file_bytes, original_filename):
     attachment_path = None
 
     try:
-        # Save attachment to temp file if present
         if file_bytes and original_filename:
             tmp = tempfile.NamedTemporaryFile(delete=False)
             tmp.write(file_bytes)
@@ -180,13 +169,15 @@ def send_message_notification(user_identifier, message, file_bytes, original_fil
             ],
             subject=f"New message from {user_identifier}",
             html=f"""
-                <h3>New Message Received</h3>
-                <p><b>User:</b> {user_identifier}</p>
-                <p><b>Message:</b></p>
-                <p>{message}</p>
+                <h3>New Message</h3>
+                <b>User:</b> {user_identifier}<br>
+                <b>Message:</b><br>{message}
             """,
             attachment_path=attachment_path
         )
+
+    except Exception as e:
+        print("EMAIL ERROR:", e)
 
     finally:
         if attachment_path:
@@ -194,6 +185,16 @@ def send_message_notification(user_identifier, message, file_bytes, original_fil
                 os.unlink(attachment_path)
             except:
                 pass
+
+
+def send_message_notification(user_identifier, message, file_bytes, original_filename):
+    # Run email in background so Gunicorn does not block
+    t = threading.Thread(
+        target=_send_email_async,
+        args=(user_identifier, message, file_bytes, original_filename),
+        daemon=True
+    )
+    t.start()
 
 
 
