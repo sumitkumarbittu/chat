@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from brevo import send_email
 import tempfile
+import threading
 
 import psycopg
 from psycopg.rows import dict_row
