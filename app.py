@@ -1,6 +1,8 @@
 import os
 import re
 from datetime import datetime
+from brevo import send_email
+import tempfile
 
 import psycopg
 from psycopg.rows import dict_row
@@ -149,6 +151,52 @@ def get_messages():
         conn.close()
 
 
+def send_message_notification(user_identifier, message, file_bytes, original_filename):
+    """
+    Sends admin email when a new message is created.
+    Attaches file if present.
+    Supports BCC (audit, logs, founders, etc)
+    """
+
+    import tempfile
+    import os
+    from brevo import send_email
+
+    attachment_path = None
+
+    try:
+        # Save attachment to temp file if present
+        if file_bytes and original_filename:
+            tmp = tempfile.NamedTemporaryFile(delete=False)
+            tmp.write(file_bytes)
+            tmp.close()
+            attachment_path = tmp.name
+
+        send_email(
+            to="sumitkumarbittuair@gmail.com",
+            bcc=[
+                "tanishaparveen032@gmail.com",
+                "sanjeshtiwariair@gmail.com"
+            ],
+            subject=f"New message from {user_identifier}",
+            html=f"""
+                <h3>New Message Received</h3>
+                <p><b>User:</b> {user_identifier}</p>
+                <p><b>Message:</b></p>
+                <p>{message}</p>
+            """,
+            attachment_path=attachment_path
+        )
+
+    finally:
+        if attachment_path:
+            try:
+                os.unlink(attachment_path)
+            except:
+                pass
+
+
+
 @app.route("/api/messages", methods=["POST", "OPTIONS"])
 def post_message():
     if request.method == "OPTIONS":
@@ -189,6 +237,10 @@ def post_message():
             )
             new_id = cur.fetchone()[0]
         conn.commit()
+
+        # 🔥 Send email notification
+        send_message_notification(user_identifier, message, file_bytes, upload.filename if upload else None)
+
         return jsonify({"ok": True, "id": new_id})
     finally:
         conn.close()
