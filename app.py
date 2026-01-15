@@ -162,6 +162,7 @@ def _send_email_async(user_identifier, message, file_bytes, original_filename):
             tmp.close()
             attachment_path = tmp.name
 
+        print("Attempting email send...")
         send_email(
             to="sumitkumarbittuair@gmail.com",
             bcc=[
@@ -176,6 +177,7 @@ def _send_email_async(user_identifier, message, file_bytes, original_filename):
             """,
             attachment_path=attachment_path
         )
+        print("Email sent OK")
 
     except Exception as e:
         print("EMAIL ERROR:", e)
