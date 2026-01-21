@@ -16,18 +16,25 @@ const api_base = "https://chat-d8ex.onrender.com";
 
   const allowedExt = ['png', 'jpg', 'jpeg', 'pdf'];
 
-  function getOrCreateUserIdentifier() {
-    const key = 'chat_user_identifier';
+  function analytics_generateVisitorId() {
+    return (
+      'V' +
+      Date.now().toString(36).slice(-4).toUpperCase() +
+      Math.random().toString(36).slice(2, 6).toUpperCase()
+    );
+  }
+
+  function getOrCreateVisitorId() {
+    const key = 'visitor_id';
     const existing = localStorage.getItem(key);
     if (existing) return existing;
 
-    const rand = Math.floor(100000 + Math.random() * 900000);
-    const id = `USER${rand}`;
+    const id = analytics_generateVisitorId();
     localStorage.setItem(key, id);
     return id;
   }
 
-  const userIdentifier = getOrCreateUserIdentifier();
+  const visitorId = getOrCreateVisitorId();
   let lastId = 0;
   let pollTimer = null;
   let hasMessages = false;
@@ -48,7 +55,7 @@ const api_base = "https://chat-d8ex.onrender.com";
   })();
 
   function cacheKey() {
-    return `chat_cache_${String(userIdentifier)}`;
+    return `chat_cache_${String(visitorId)}`;
   }
 
   function readMessageCache() {
@@ -443,7 +450,7 @@ const api_base = "https://chat-d8ex.onrender.com";
     if (msg.has_file && (msg.id !== undefined && msg.id !== null)) {
       const a = document.createElement('a');
       a.className = 'chat-attachment';
-      a.href = `${api_base}/api/messages/${msg.id}/file?user_identifier=${encodeURIComponent(userIdentifier)}`;
+      a.href = `${api_base}/api/messages/${msg.id}/file?visitor_id=${encodeURIComponent(visitorId)}`;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.innerHTML = `
@@ -476,7 +483,7 @@ const api_base = "https://chat-d8ex.onrender.com";
     if (pollInFlight) return;
     pollInFlight = true;
     try {
-      const url = `${api_base}/api/messages?user_identifier=${encodeURIComponent(userIdentifier)}&after_id=${encodeURIComponent(String(lastId))}`;
+      const url = `${api_base}/api/messages?visitor_id=${encodeURIComponent(visitorId)}&after_id=${encodeURIComponent(String(lastId))}`;
 
       const res = await fetch(url, { method: 'GET' });
       if (!res.ok) return;
@@ -608,7 +615,7 @@ const api_base = "https://chat-d8ex.onrender.com";
 
     try {
       const fd = new FormData();
-      fd.append('user_identifier', userIdentifier);
+      fd.append('visitor_id', visitorId);
       fd.append('message', text);
       if (file) fd.append('file', file, file.name);
 
